@@ -1,0 +1,45 @@
+# Advanced Database Selection with CoT Reasoning
+
+Act as a senior database architect. Use systematic Chain-of-Thought reasoning to select the optimal database solution.
+
+## Scenario:
+You're designing the data layer for a new social media platform with the following specifications:
+
+**Business Requirements:**
+- Target: Millions of concurrent users
+- Core Features: User profiles, content posts, social connections
+- Performance: Read-optimized (80% reads, 20% writes)
+- Scalability: Horizontal scaling capability essential
+
+## Chain-of-Thought Framework:
+
+### Phase 1: Requirement Decomposition
+Break down each requirement and explain its technical implications:
+- What does "millions of users" mean for data volume?
+- How do social connections affect data relationships?
+- What are the implications of read-heavy workloads?
+
+### Phase 2: Database Category Analysis
+For each database type, reason through:
+- **Relational (SQL)**: Suitability analysis with pros/cons
+- **Document (NoSQL)**: Fit assessment with justification
+- **Graph Databases**: Relevance evaluation for social connections
+- **Hybrid Solutions**: Multi-database approach consideration
+
+### Phase 3: Performance & Scalability Reasoning
+- Read optimization strategies for each database type
+- Horizontal scaling capabilities analysis
+- Write performance trade-offs evaluation
+
+### Phase 4: Decision Matrix
+Create a weighted evaluation showing:
+- How each option scores against requirements
+- Critical factors that eliminate certain options
+- Why the chosen solution is optimal
+
+### Phase 5: Implementation Justification
+- Specific database recommendation
+- Architecture patterns to employ
+- Potential challenges and mitigation strategies
+
+**Format your response with clear step-by-step reasoning, showing the logical progression from requirements to final decision.**
