@@ -1,0 +1,57 @@
+Here's the professionally structured bug report based on the informal description:
+
+## **Title**  
+Logout Button Unresponsive in Safari Browser  
+
+## **Description**  
+When attempting to log out of the application using Safari, clicking the logout button produces no response. The button appears clickable but fails to trigger the logout action, leaving users unable to sign out of their accounts.  
+
+## **Steps to Reproduce**  
+1. Open Safari browser (latest stable version)  
+2. Navigate to the application login page  
+3. Authenticate with valid credentials  
+4. After successful login, locate and click the logout button  
+5. Observe the button's behavior  
+
+## **Expected vs Actual Behavior**  
+**Expected:** Clicking logout button should:  
+- Terminate the current session  
+- Redirect user to login page  
+- Clear authentication tokens  
+
+**Actual:**  
+- Button shows visual feedback (hover/active states)  
+- No logout action occurs  
+- No error messages displayed  
+- User remains logged in  
+
+## **Environment**  
+- Browser: Safari (version not specified - needs confirmation)  
+- Operating System: macOS (inferred from Safari usage)  
+- Device Type: Likely desktop (needs confirmation)  
+- Additional Context:  
+  - Issue appears specific to Safari (Chrome/Firefox not mentioned as affected)  
+  - No console errors reported  
+
+## **Severity/Impact**  
+**High**  
+- Blocks core security functionality (user cannot log out)  
+- Potential session management concerns  
+- Impacts all Safari users  
+
+## **Missing Information/Follow-up Questions**  
+1. Does this occur on all Safari versions or specific ones?  
+2. Is the issue present on iOS Safari as well as macOS?  
+3. Are there any JavaScript errors in console when clicking the button?  
+4. Does the issue occur after specific user actions or consistently?  
+
+## **Reproduction Rate**  
+[To be filled by QA] - Initial report suggests 100% reproducibility in Safari  
+
+## **Attachments**  
+[Would recommend adding:]  
+- Screenshot of unresponsive button  
+- Browser console logs  
+- Network tab recording of the click event  
+
+This report provides developers with clear reproduction steps while highlighting the security implications of the issue. The missing information section guides further investigation.
