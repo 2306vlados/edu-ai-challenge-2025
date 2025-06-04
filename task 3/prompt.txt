@@ -1,0 +1,15 @@
+Analyze the following text and provide a concise summary, sentiment analysis, and structured JSON output.
+
+Please provide your analysis in this exact JSON format:
+{
+  "summary": "2-3 sentence summary here",
+  "sentiment_classification": "positive/neutral/negative",
+  "sentiment_score": -1 to +1,
+  "key_themes": ["theme1", "theme2", "theme3"],
+  "word_count_original": number,
+  "word_count_summary": number,
+  "analysis_metadata": {
+    "tone": "description of tone",
+    "perspective": "description of perspective"
+  }
+}
