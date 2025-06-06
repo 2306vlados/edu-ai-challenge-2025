@@ -1,0 +1,60 @@
+{
+  "sample1_analysis": {
+    "feedback": "Sensor just stops tracking for like a half second kinda often even at 8000hz. I've also tried it plugged in and still the same problem. First one I got I had to return also because the dongle just didnt work, $150 mouse btw",
+    "analysis_reasoning": "This feedback is clearly about a specific product - a high-end gaming mouse ($150 price point). Let me analyze step by step: The user reports multiple technical issues (sensor tracking problems, dongle failure) and mentions specific technical details (8000hz polling rate), indicating they are experienced with gaming peripherals. The sentiment is negative due to product defects and poor reliability. The user had to return their first unit, showing significant problems with quality control.",
+    "result": {
+      "sentiment": "Negative",
+      "isRelevant": true,
+      "mainSubject": "gaming mouse tracking and reliability issues",
+      "positives": [],
+      "painPoints": [
+        "sensor stops tracking intermittently",
+        "tracking issues occur even at 8000hz polling rate",
+        "problem persists when plugged in",
+        "had to return first unit due to non-functional dongle",
+        "high price point for unreliable product"
+      ],
+      "improvementSuggestions": [
+        "improve sensor tracking stability",
+        "enhance dongle reliability and quality control",
+        "better quality assurance before shipping"
+      ],
+      "featuresMentioned": [
+        "sensor tracking",
+        "8000hz polling rate",
+        "dongle",
+        "wired/wireless functionality"
+      ],
+      "userExpertise": "Experienced"
+    }
+  },
+  "sample2_analysis": {
+    "feedback": "Is it worth it? It is a product with no flaws in my opinion, if you love it go for it, but its not worth the price since you'll be able to perform the same with a cheaper product with half the specs.",
+    "analysis_reasoning": "This feedback is about a specific product, discussing value proposition and price-performance ratio. Let me analyze: The sentiment is mixed - positive about product quality (no flaws) but negative about value for money. The user acknowledges the product works well but questions if the premium price is justified when cheaper alternatives can deliver similar performance. This suggests the user has compared multiple products and understands market positioning.",
+    "result": {
+      "sentiment": "Mixed",
+      "isRelevant": true,
+      "mainSubject": "product value proposition and pricing",
+      "positives": [
+        "product has no flaws",
+        "works well if you love it"
+      ],
+      "painPoints": [
+        "not worth the high price",
+        "cheaper alternatives provide similar performance",
+        "overpriced for the value delivered"
+      ],
+      "improvementSuggestions": [
+        "reconsider pricing strategy",
+        "better communicate unique value proposition",
+        "justify premium pricing with exclusive features"
+      ],
+      "featuresMentioned": [
+        "product specifications",
+        "performance capabilities",
+        "pricing"
+      ],
+      "userExpertise": "Experienced"
+    }
+  }
+} 
