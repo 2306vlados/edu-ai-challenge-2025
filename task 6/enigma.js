@@ -1,4 +1,4 @@
-import readline from 'readline';
+const readline = require('readline');
 
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -63,7 +63,7 @@ class Enigma {
   }
 
   stepRotors() {
-    // Double stepping mechanism
+    // Double stepping mechanism - rightmost rotor steps every keypress
     if (this.rotors[2].atNotch()) this.rotors[1].step();
     if (this.rotors[1].atNotch()) this.rotors[0].step();
     this.rotors[2].step();
@@ -77,7 +77,7 @@ class Enigma {
     // First plugboard pass
     c = plugboardSwap(c, this.plugboardPairs);
 
-    // Forward through rotors
+    // Forward through rotors (right to left)
     for (let i = this.rotors.length - 1; i >= 0; i--) {
       c = this.rotors[i].forward(c);
     }
@@ -85,12 +85,12 @@ class Enigma {
     // Reflector
     c = REFLECTOR[ALPHABET.indexOf(c)];
 
-    // Backward through rotors
+    // Backward through rotors (left to right)
     for (let i = 0; i < this.rotors.length; i++) {
       c = this.rotors[i].backward(c);
     }
 
-    // Second plugboard pass (THIS WAS THE MISSING BUG FIX)
+    // Second plugboard pass (CRITICAL BUG FIX)
     c = plugboardSwap(c, this.plugboardPairs);
 
     return c;
@@ -124,7 +124,7 @@ const promptEnigma = () => {
               ?.map((pair) => [pair[0], pair[1]]) || [];
 
           const enigma = new Enigma(
-            [0, 1, 2],
+            [0, 1, 2], // Always uses rotors I, II, and III as per README
             rotorPositions,
             ringSettings,
             plugPairs,
@@ -139,8 +139,8 @@ const promptEnigma = () => {
 };
 
 // Export for testing
-export { Enigma, Rotor, plugboardSwap, ROTORS, REFLECTOR, ALPHABET };
+module.exports = { Enigma, Rotor, plugboardSwap, ROTORS, REFLECTOR, ALPHABET };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   promptEnigma();
 }
