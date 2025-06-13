@@ -1,0 +1,23 @@
+Test Coverage Report for Data Validation Library
+===============================================
+
+Coverage: ~100% of all main validators and their combinations
+
+Covered scenarios:
+- StringValidator: required, minLength, maxLength, pattern, optional
+- NumberValidator: required, min, max, optional
+- BooleanValidator: required, type, optional
+- DateValidator: required, valid/invalid date
+- ArrayValidator: arrays, nested errors
+- ObjectValidator: nested schemas, optional fields, key-specific errors
+
+Edge cases:
+- Required and optional fields
+- Invalid types (e.g., string instead of number)
+- Empty values
+- Nested objects and arrays
+
+All tests passed successfully (node schema.test.js):
+All tests passed!
+
+Note: For extended coverage, consider adding tests for custom error messages and more complex nested structures. 
