@@ -13,6 +13,9 @@ const {
   ObjectValidator
 } = require('./schema');
 
+global.describe = (desc, fn) => { console.log(desc); fn(); };
+global.it = (msg, fn) => { try { fn(); console.log('  ✓', msg); } catch (e) { console.error('  ✗', msg); throw e; } };
+
 // Импортируем валидаторы из schema.js (если потребуется, экспортировать их)
 // Здесь предполагается, что классы доступны глобально
 
@@ -111,7 +114,3 @@ describe('ObjectValidator', () => {
 });
 
 console.log('All tests passed!');
-
-// Helper for describe/it in plain Node.js
-global.describe = (desc, fn) => { console.log(desc); fn(); };
-global.it = (msg, fn) => { try { fn(); console.log('  ✓', msg); } catch (e) { console.error('  ✗', msg); throw e; } }; 
