@@ -99,7 +99,7 @@ async function fetchOpenAIReport(prompt) {
       'Authorization': `Bearer ${OPENAI_API_KEY}`
     },
     body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4.1-mini',
       messages: [
         { role: 'system', content: 'You are a helpful service analyst.' },
         { role: 'user', content: prompt }
