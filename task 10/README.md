@@ -1,146 +1,79 @@
 # Product Search Assistant
 
-AI-powered product search tool using OpenAI's function calling capabilities to filter products based on natural language queries.
-
-## Overview
-
-This console application allows users to search for products using natural language input. Instead of manual filtering logic, it leverages OpenAI's function calling feature to interpret user preferences and automatically filter a product database.
+This is a console application that uses OpenAI's function calling feature to filter products based on natural language queries.
 
 ## Features
 
-- 🤖 **Natural Language Processing**: Ask for products in everyday language
-- 🔍 **Smart Filtering**: AI extracts filtering criteria from your queries
-- 📱 **Function Calling**: Uses OpenAI's function calling for structured data processing
-- 🛍️ **Multi-Category Support**: Electronics, Fitness, Kitchen, Books, Clothing
-- 💰 **Price & Rating Filters**: Supports price range and rating preferences
-- 📦 **Stock Availability**: Filter by in-stock status
-
-## Prerequisites
-
-- **Node.js** (version 16.0.0 or higher)
-- **OpenAI API Key** with GPT-4 access
-- **Internet connection** for API calls
+- Natural language product search
+- Category filtering (Electronics, Fitness, Kitchen, Books, Clothing)
+- Price range filtering
+- Rating-based filtering
+- Stock availability filtering
+- Interactive console interface
 
 ## Installation
 
-1. **Navigate to the project directory:**
-
-   ```bash
-   cd "task 10"
-   ```
-
-2. **Install dependencies:**
+1. Make sure you have Node.js installed (version 18 or higher)
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-3. **Set up your OpenAI API key:**
-
-   **Windows (Command Prompt):**
-
-   ```cmd
-   set OPENAI_API_KEY=your_api_key_here
-   ```
-
-   **Windows (PowerShell):**
-
-   ```powershell
-   $env:OPENAI_API_KEY = "your_api_key_here"
-   ```
-
-   **Linux/Mac:**
-
-   ```bash
-   export OPENAI_API_KEY=your_api_key_here
-   ```
+3. Set up your OpenAI API key:
+   - The `.env` file is already included with the API key
+   - If you need to change it, edit the `.env` file:
+     ```
+     OPENAI_API_KEY=your_api_key_here
+     ```
 
 ## Usage
 
-### Starting the Application
-
-Run the application using one of these methods:
+Run the application:
 
 ```bash
-# Method 1: Using npm script
 npm start
-
-# Method 2: Direct node execution
-node product-search.js
 ```
 
-### Example Queries
+Then enter natural language queries like:
 
-The application accepts natural language queries. Here are some examples:
+- "Find electronics under $500"
+- "Show me books with rating above 4"
+- "I want fitness equipment that's in stock"
+- "Kitchen items between $50 and $200"
+- "Show all clothing with 5-star ratings"
 
-**Basic Searches:**
+Type 'exit' to quit the application.
 
-- "I need electronics under $100"
-- "Show me fitness equipment"
-- "Find books for me"
+## How it Works
 
-**Advanced Searches:**
+The application uses OpenAI's function calling feature to:
 
-- "I want kitchen appliances under $200 with rating above 4.5"
-- "Show me affordable electronics that are in stock"
-- "Find high-rated fitness equipment under $50"
-- "I need premium clothing items with excellent ratings"
+1. Parse natural language queries
+2. Extract filtering criteria (category, price range, rating, stock status)
+3. Apply filters to the product dataset
+4. Return matching products
 
-**Complex Preferences:**
-
-- "I'm looking for electronics under $300 with great reviews and availability"
-- "Show me budget-friendly books with good ratings"
-- "Find me kitchen gadgets under $100 that are highly rated and in stock"
-
-### Interactive Session
-
-1. The app will display a welcome message and examples
-2. Type your product search query in natural language
-3. The AI will process your request and show filtered results
-4. Type `exit` to quit the application
-
-## How It Works
-
-### OpenAI Function Calling
-
-The application uses OpenAI's function calling feature with a predefined schema:
-
-```javascript
-{
-  name: 'filter_products',
-  parameters: {
-    category: 'Electronics|Fitness|Kitchen|Books|Clothing',
-    max_price: number,
-    min_rating: number (0-5),
-    in_stock: boolean
-  }
-}
-```
-
-### Processing Flow
-
-1. **User Input**: Natural language query
-2. **AI Analysis**: OpenAI extracts filtering criteria
-3. **Function Call**: AI calls `filter_products` with structured parameters
-4. **Filtering**: Products are filtered based on extracted criteria
-5. **Results**: Formatted product list is displayed
+The AI determines which parameters to use based on your natural language input - no manual logic for parsing queries is implemented.
 
 ## Dataset
 
-The application uses `products.json` containing 50 products across 5 categories:
+The application searches through 50 sample products across 5 categories:
 
-- **Electronics**: Laptops, headphones, smartphones, etc.
-- **Fitness**: Exercise equipment, yoga mats, weights, etc.
-- **Kitchen**: Appliances, cookware, gadgets, etc.
-- **Books**: Novels, guides, cookbooks, etc.
-- **Clothing**: Apparel, accessories, footwear, etc.
+- Electronics (laptops, smartphones, headphones, etc.)
+- Fitness (equipment, supplements, accessories)
+- Kitchen (appliances, cookware, gadgets)
+- Books (various genres and topics)
+- Clothing (apparel and accessories)
 
-Each product includes:
+Each product has:
 
-- Name and category
-- Price ($9.99 - $1299.99)
-- Rating (4.0 - 4.8 scale)
+- Name and description
+- Category
+- Price
+- Rating (1-5 stars)
 - Stock availability
+- Brand information
 
 ## Troubleshooting
 

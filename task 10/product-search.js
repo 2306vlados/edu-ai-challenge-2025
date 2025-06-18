@@ -1,6 +1,9 @@
+// Load environment variables from .env file
+require('dotenv').config();
+
 const fs = require('fs');
 const readline = require('readline');
-const OpenAI = require('openai');
+const { OpenAI } = require('openai');
 
 // Constants
 const PRODUCTS_FILE = './products.json';
