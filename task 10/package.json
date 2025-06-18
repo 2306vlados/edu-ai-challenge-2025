@@ -1,0 +1,25 @@
+{
+  "name": "product-search-assistant",
+  "version": "1.0.0",
+  "description": "AI-powered product search using OpenAI function calling",
+  "main": "product-search.js",
+  "scripts": {
+    "start": "node product-search.js",
+    "test": "node test-app.js"
+  },
+  "keywords": [
+    "openai",
+    "function-calling",
+    "product-search",
+    "ai",
+    "console-app"
+  ],
+  "author": "AI Challenge Participant",
+  "license": "MIT",
+  "dependencies": {
+    "openai": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 
