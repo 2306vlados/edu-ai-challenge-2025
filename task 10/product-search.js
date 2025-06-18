@@ -62,31 +62,174 @@ const loadProducts = () => {
     }
 };
 
+const PRICE_RANGES = {
+    'cheap': 50,
+    'budget': 100,
+    'affordable': 200,
+    'expensive': 500,
+    'premium': 1000
+};
+
 // Filter products function implementation
-const filterProducts = (products, filters) => {
-    return products.filter(product => {
+const filterProducts = (filters) => {
+    const {
+        category,
+        min_price,
+        max_price,
+        min_rating,
+        in_stock_only,
+        search_term
+    } = filters;
+
+    let filteredProducts = products.filter(product => {
         // Category filter
-        if (filters.category && product.category !== filters.category) {
+        if (category && product.category.toLowerCase() !== category.toLowerCase()) {
             return false;
         }
-        
-        // Max price filter
-        if (filters.max_price !== undefined && product.price > filters.max_price) {
+
+        // Price filters
+        if (min_price !== undefined && product.price < min_price) {
             return false;
         }
-        
-        // Min rating filter
-        if (filters.min_rating !== undefined && product.rating < filters.min_rating) {
+        if (max_price !== undefined && product.price > max_price) {
             return false;
         }
-        
-        // Stock availability filter
-        if (filters.in_stock !== undefined && product.in_stock !== filters.in_stock) {
+
+        // Rating filter
+        if (min_rating !== undefined && product.rating < min_rating) {
             return false;
         }
-        
+
+        // Stock filter
+        if (in_stock_only && !product.in_stock) {
+            return false;
+        }
+
+        // Search term filter
+        if (search_term) {
+            const searchLower = search_term.toLowerCase();
+            return product.name.toLowerCase().includes(searchLower);
+        }
+
         return true;
     });
+
+
+
+    // Smart sorting logic
+    if (filteredProducts.length > 1) {
+        // If no price constraints, sort by rating (best first)
+        if (max_price === undefined && min_price === undefined) {
+            filteredProducts = filteredProducts.sort((a, b) => b.rating - a.rating);
+        }
+        // If price constraints exist, sort by price (cheapest first)
+        else if (max_price !== undefined) {
+            filteredProducts = filteredProducts.sort((a, b) => a.price - b.price);
+        }
+    }
+
+    // FALLBACK: If no results and we have ANY criteria, try progressive relaxation
+    if (filteredProducts.length === 0) {
+        console.log('\n❗ No exact matches found. Trying progressive search...');
+        
+        // Try 1: Relax rating requirements
+        if (min_rating !== undefined && min_rating > 4.0) {
+            const relaxedRating = filterProductsWithRelaxedRating(filters);
+            if (relaxedRating.length > 0) {
+                console.log('📈 Relaxed rating requirements');
+                return relaxedRating.slice(0, 10);
+            }
+        }
+        
+        // Try 2: Relax price requirements
+        if (max_price !== undefined || min_price !== undefined) {
+            const relaxedPrice = filterProductsWithRelaxedPrice(filters);
+            if (relaxedPrice.length > 0) {
+                console.log('💰 Relaxed price requirements');
+                return relaxedPrice.slice(0, 10);
+            }
+        }
+        
+        // Try 3: Category-only search
+        if (category) {
+            const categoryOnly = products.filter(p => 
+                p.category.toLowerCase() === category.toLowerCase()
+            ).sort((a, b) => b.rating - a.rating);
+            if (categoryOnly.length > 0) {
+                console.log('📂 Showing all products in category');
+                return categoryOnly.slice(0, 10);
+            }
+        }
+        
+        // Try 4: Search term only (if exists)
+        if (search_term) {
+            const termOnly = products.filter(p => 
+                p.name.toLowerCase().includes(search_term.toLowerCase())
+            ).sort((a, b) => b.rating - a.rating);
+            if (termOnly.length > 0) {
+                console.log('🔍 Broader search by product name');
+                return termOnly.slice(0, 10);
+            }
+        }
+        
+        // Try 5: Last resort - show popular products (high ratings)
+        console.log('⭐ Showing most popular products');
+        return products
+            .filter(p => p.rating >= 4.5)
+            .sort((a, b) => b.rating - a.rating)
+            .slice(0, 10);
+    }
+
+    return filteredProducts;
+};
+
+// Helper function to relax rating requirements
+const filterProductsWithRelaxedRating = (originalFilters) => {
+    const relaxedFilters = { ...originalFilters };
+    // Lower the rating requirement
+    if (relaxedFilters.min_rating >= 4.5) {
+        relaxedFilters.min_rating = 4.0;
+    } else if (relaxedFilters.min_rating >= 4.0) {
+        delete relaxedFilters.min_rating;
+    }
+    
+    return products.filter(product => {
+        if (relaxedFilters.category && product.category.toLowerCase() !== relaxedFilters.category.toLowerCase()) return false;
+        if (relaxedFilters.min_price !== undefined && product.price < relaxedFilters.min_price) return false;
+        if (relaxedFilters.max_price !== undefined && product.price > relaxedFilters.max_price) return false;
+        if (relaxedFilters.min_rating !== undefined && product.rating < relaxedFilters.min_rating) return false;
+        if (relaxedFilters.in_stock_only && !product.in_stock) return false;
+        if (relaxedFilters.search_term) {
+            const searchLower = relaxedFilters.search_term.toLowerCase();
+            return product.name.toLowerCase().includes(searchLower);
+        }
+        return true;
+    }).sort((a, b) => b.rating - a.rating);
+};
+
+// Helper function to relax price requirements
+const filterProductsWithRelaxedPrice = (originalFilters) => {
+    const relaxedFilters = { ...originalFilters };
+    // Increase max_price or remove min_price
+    if (relaxedFilters.max_price !== undefined) {
+        relaxedFilters.max_price = relaxedFilters.max_price * 2; // Double the budget
+    }
+    if (relaxedFilters.min_price !== undefined) {
+        relaxedFilters.min_price = relaxedFilters.min_price * 0.5; // Half the minimum
+    }
+    
+    return products.filter(product => {
+        if (relaxedFilters.category && product.category.toLowerCase() !== relaxedFilters.category.toLowerCase()) return false;
+        if (relaxedFilters.min_price !== undefined && product.price < relaxedFilters.min_price) return false;
+        if (relaxedFilters.max_price !== undefined && product.price > relaxedFilters.max_price) return false;
+        if (relaxedFilters.min_rating !== undefined && product.rating < relaxedFilters.min_rating) return false;
+        if (relaxedFilters.in_stock_only && !product.in_stock) return false;
+        if (relaxedFilters.search_term) {
+            const searchLower = relaxedFilters.search_term.toLowerCase();
+            return product.name.toLowerCase().includes(searchLower);
+        }
+        return true;
+    }).sort((a, b) => a.price - b.price);
 };
 
 // Format filtered products for display
@@ -104,26 +247,77 @@ const formatProducts = (products) => {
     return output;
 };
 
-// Main search function using OpenAI API
-const searchProducts = async (userQuery, products) => {
-    try {
-        console.log('🤖 Processing your request with AI...\n');
+const displayResults = (products, originalFilters) => {
+    if (products.length === 0) {
+        console.log('\n❌ No products found matching your criteria.');
+        console.log('💡 Try adjusting your search terms or budget.');
+        return;
+    }
+
+    console.log('\n🔍 Filtered Products:');
+    
+    // Check if results are alternatives (not exact matches)
+    const isAlternativeResults = originalFilters.max_price !== undefined && 
+                                products.some(p => p.price > originalFilters.max_price);
+    
+    if (isAlternativeResults) {
+        console.log('💡 Showing closest alternatives since no exact matches were found within your budget.');
+    }
+
+    products.forEach((product, index) => {
+        const stockStatus = product.in_stock ? 'In Stock' : 'Out of Stock';
+        const priceWarning = originalFilters.max_price !== undefined && 
+                            product.price > originalFilters.max_price ? ' ⚠️ Above budget' : '';
         
+        console.log(`${index + 1}. ${product.name} - $${product.price}${priceWarning}, Rating: ${product.rating}, ${stockStatus}`);
+    });
+
+    // Show budget summary if price filtering was used
+    if (originalFilters.max_price !== undefined || originalFilters.min_price !== undefined) {
+        console.log('\n💰 Budget Summary:');
+        if (originalFilters.max_price !== undefined) {
+            console.log(`   • Your max budget: $${originalFilters.max_price}`);
+            const withinBudget = products.filter(p => p.price <= originalFilters.max_price);
+            const aboveBudget = products.filter(p => p.price > originalFilters.max_price);
+            
+            if (withinBudget.length > 0) {
+                console.log(`   • Within budget: ${withinBudget.length} product(s)`);
+            }
+            if (aboveBudget.length > 0) {
+                const cheapestAbove = Math.min(...aboveBudget.map(p => p.price));
+                console.log(`   • Above budget: ${aboveBudget.length} product(s) (cheapest: $${cheapestAbove})`);
+            }
+        }
+    }
+};
+
+// Main search function using OpenAI API
+const searchProducts = async (userQuery) => {
+    try {
         const messages = [
             {
                 role: 'system',
-                content: `You are a product search assistant. Analyze user preferences and call the filter_products function with appropriate parameters. 
-                
-Available product categories: Electronics, Fitness, Kitchen, Books, Clothing
-Price range in dataset: $9.99 - $1299.99
-Rating range: 0-5 scale (dataset contains ratings 4.0-4.8)
+                content: `You are a product search assistant. Analyze ANY user input and extract the most logical search criteria. Be flexible and interpret user intent, not just keywords.
 
-When user mentions:
-- "affordable" or "cheap" = max_price around $50
-- "expensive" or "premium" = min_rating 4.5+
-- "good quality" or "high rated" = min_rating 4.5+
-- "available" or "in stock" = in_stock: true
-- Category names should match exactly: Electronics, Fitness, Kitchen, Books, Clothing`
+Available categories: Electronics, Fitness, Kitchen, Books, Clothing
+
+Extract filters based on user intent:
+- If user mentions price terms like "cheap", "budget" → max_price: 50
+- If user mentions "affordable" → max_price: 200  
+- If user mentions "expensive", "premium" → min_price: 500
+- If user mentions quality like "best", "top", "high quality" → min_rating: 4.5
+- If user mentions "good", "decent" → min_rating: 4.0
+- If user mentions availability like "available", "in stock" → in_stock_only: true
+
+IMPORTANT FALLBACK LOGIC:
+- If no specific criteria mentioned, try to infer from context
+- If user just says general things like "show me products" → return empty filters (show all)
+- If user mentions a category without specifics → just set category
+- If user asks for "something" without details → be flexible and helpful
+- For vague requests, prefer broader searches over empty results
+- Extract product names as search_term when mentioned (laptop, phone, book, etc.)
+
+Always try to be helpful - if unsure, err on the side of showing more results rather than fewer.`
             },
             {
                 role: 'user',
@@ -146,15 +340,15 @@ When user mentions:
             throw new Error('AI did not call the filter_products function');
         }
 
-        const filters = JSON.parse(functionCall.arguments);
-        console.log('🎯 AI extracted filters:', JSON.stringify(filters, null, 2));
+        const extractedFilters = JSON.parse(functionCall.arguments);
+        console.log('🎯 AI extracted filters:', JSON.stringify(extractedFilters, null, 2));
         
-        const filteredProducts = filterProducts(products, filters);
-        return formatProducts(filteredProducts);
+        const results = filterProducts(extractedFilters);
+        displayResults(results, extractedFilters);
         
     } catch (error) {
         console.error('❌ Error processing search:', error.message);
-        return '❌ Failed to process your search request. Please try again.';
+        throw error;
     }
 };
 
@@ -212,10 +406,15 @@ const main = async () => {
             }
 
             try {
-                const result = await searchProducts(query, products);
-                console.log(result);
+                console.log('🤖 Processing your request with AI...');
+                await searchProducts(query);
             } catch (error) {
-                console.error('❌ Unexpected error:', error.message);
+                if (error.code === 'unsupported_country_region_territory') {
+                    console.log('❌ Error processing search: 403 Country, region, or territory not supported');
+                    console.log('❌ Failed to process your search request. Please try again.');
+                } else {
+                    console.error('❌ Error processing search:', error.message);
+                }
             }
             
             console.log('\n' + '─'.repeat(50) + '\n');
