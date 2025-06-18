@@ -24,7 +24,7 @@ const initializeOpenAI = () => {
 // Function schema for OpenAI function calling
 const FILTER_PRODUCTS_FUNCTION = {
     name: 'filter_products',
-    description: 'Filter products based on user preferences including category, price range, rating, and stock availability',
+    description: 'Filter products based on user preferences including category, price range, rating, stock availability, and search terms',
     parameters: {
         type: 'object',
         properties: {
@@ -37,6 +37,10 @@ const FILTER_PRODUCTS_FUNCTION = {
                 type: 'number',
                 description: 'Maximum price for the product'
             },
+            min_price: {
+                type: 'number',
+                description: 'Minimum price for the product'
+            },
             min_rating: {
                 type: 'number',
                 description: 'Minimum rating for the product (0-5 scale)',
@@ -46,6 +50,10 @@ const FILTER_PRODUCTS_FUNCTION = {
             in_stock: {
                 type: 'boolean',
                 description: 'Whether to only show products that are in stock'
+            },
+            search_term: {
+                type: 'string',
+                description: 'Search term to match against product names'
             }
         }
     }
@@ -77,11 +85,11 @@ const filterProducts = (filters) => {
         min_price,
         max_price,
         min_rating,
-        in_stock_only,
+        in_stock,
         search_term
     } = filters;
 
-    let filteredProducts = products.filter(product => {
+    let filteredProducts = productsData.filter(product => {
         // Category filter
         if (category && product.category.toLowerCase() !== category.toLowerCase()) {
             return false;
@@ -101,11 +109,11 @@ const filterProducts = (filters) => {
         }
 
         // Stock filter
-        if (in_stock_only && !product.in_stock) {
+        if (in_stock && !product.in_stock) {
             return false;
         }
 
-        // Search term filter
+        // Search term filter - универсальный поиск по названию
         if (search_term) {
             const searchLower = search_term.toLowerCase();
             return product.name.toLowerCase().includes(searchLower);
@@ -113,8 +121,6 @@ const filterProducts = (filters) => {
 
         return true;
     });
-
-
 
     // Smart sorting logic
     if (filteredProducts.length > 1) {
@@ -132,12 +138,14 @@ const filterProducts = (filters) => {
     if (filteredProducts.length === 0) {
         console.log('\n❗ No exact matches found. Trying progressive search...');
         
-        // Try 1: Relax rating requirements
-        if (min_rating !== undefined && min_rating > 4.0) {
-            const relaxedRating = filterProductsWithRelaxedRating(filters);
-            if (relaxedRating.length > 0) {
-                console.log('📈 Relaxed rating requirements');
-                return relaxedRating.slice(0, 10);
+        // Try 1: Search term only first (if exists) - most important
+        if (search_term) {
+            const termOnly = productsData.filter(p => 
+                p.name.toLowerCase().includes(search_term.toLowerCase())
+            ).sort((a, b) => b.rating - a.rating);
+            if (termOnly.length > 0) {
+                console.log('🔍 Showing all products matching your search term');
+                return termOnly.slice(0, 10);
             }
         }
         
@@ -150,9 +158,18 @@ const filterProducts = (filters) => {
             }
         }
         
-        // Try 3: Category-only search
+        // Try 3: Relax rating requirements
+        if (min_rating !== undefined && min_rating > 4.0) {
+            const relaxedRating = filterProductsWithRelaxedRating(filters);
+            if (relaxedRating.length > 0) {
+                console.log('📈 Relaxed rating requirements');
+                return relaxedRating.slice(0, 10);
+            }
+        }
+        
+        // Try 4: Category-only search
         if (category) {
-            const categoryOnly = products.filter(p => 
+            const categoryOnly = productsData.filter(p => 
                 p.category.toLowerCase() === category.toLowerCase()
             ).sort((a, b) => b.rating - a.rating);
             if (categoryOnly.length > 0) {
@@ -161,20 +178,9 @@ const filterProducts = (filters) => {
             }
         }
         
-        // Try 4: Search term only (if exists)
-        if (search_term) {
-            const termOnly = products.filter(p => 
-                p.name.toLowerCase().includes(search_term.toLowerCase())
-            ).sort((a, b) => b.rating - a.rating);
-            if (termOnly.length > 0) {
-                console.log('🔍 Broader search by product name');
-                return termOnly.slice(0, 10);
-            }
-        }
-        
         // Try 5: Last resort - show popular products (high ratings)
         console.log('⭐ Showing most popular products');
-        return products
+        return productsData
             .filter(p => p.rating >= 4.5)
             .sort((a, b) => b.rating - a.rating)
             .slice(0, 10);
@@ -193,43 +199,46 @@ const filterProductsWithRelaxedRating = (originalFilters) => {
         delete relaxedFilters.min_rating;
     }
     
-    return products.filter(product => {
+    return productsData.filter(product => {
         if (relaxedFilters.category && product.category.toLowerCase() !== relaxedFilters.category.toLowerCase()) return false;
         if (relaxedFilters.min_price !== undefined && product.price < relaxedFilters.min_price) return false;
         if (relaxedFilters.max_price !== undefined && product.price > relaxedFilters.max_price) return false;
         if (relaxedFilters.min_rating !== undefined && product.rating < relaxedFilters.min_rating) return false;
-        if (relaxedFilters.in_stock_only && !product.in_stock) return false;
+        if (relaxedFilters.in_stock && !product.in_stock) return false;
         if (relaxedFilters.search_term) {
             const searchLower = relaxedFilters.search_term.toLowerCase();
             return product.name.toLowerCase().includes(searchLower);
         }
         return true;
-    }).sort((a, b) => b.rating - a.rating);
+    });
 };
 
-// Helper function to relax price requirements
+// Helper function to relax price requirements  
 const filterProductsWithRelaxedPrice = (originalFilters) => {
     const relaxedFilters = { ...originalFilters };
-    // Increase max_price or remove min_price
+    
+    // Increase max price by 50%
     if (relaxedFilters.max_price !== undefined) {
-        relaxedFilters.max_price = relaxedFilters.max_price * 2; // Double the budget
-    }
-    if (relaxedFilters.min_price !== undefined) {
-        relaxedFilters.min_price = relaxedFilters.min_price * 0.5; // Half the minimum
+        relaxedFilters.max_price = Math.round(relaxedFilters.max_price * 1.5);
     }
     
-    return products.filter(product => {
+    // Decrease min price by 25%
+    if (relaxedFilters.min_price !== undefined) {
+        relaxedFilters.min_price = Math.round(relaxedFilters.min_price * 0.75);
+    }
+    
+    return productsData.filter(product => {
         if (relaxedFilters.category && product.category.toLowerCase() !== relaxedFilters.category.toLowerCase()) return false;
         if (relaxedFilters.min_price !== undefined && product.price < relaxedFilters.min_price) return false;
         if (relaxedFilters.max_price !== undefined && product.price > relaxedFilters.max_price) return false;
         if (relaxedFilters.min_rating !== undefined && product.rating < relaxedFilters.min_rating) return false;
-        if (relaxedFilters.in_stock_only && !product.in_stock) return false;
+        if (relaxedFilters.in_stock && !product.in_stock) return false;
         if (relaxedFilters.search_term) {
             const searchLower = relaxedFilters.search_term.toLowerCase();
             return product.name.toLowerCase().includes(searchLower);
         }
         return true;
-    }).sort((a, b) => a.price - b.price);
+    });
 };
 
 // Format filtered products for display
@@ -297,27 +306,44 @@ const searchProducts = async (userQuery) => {
         const messages = [
             {
                 role: 'system',
-                content: `You are a product search assistant. Analyze ANY user input and extract the most logical search criteria. Be flexible and interpret user intent, not just keywords.
+                content: `You are a universal product search assistant. Analyze user input and extract ALL relevant search criteria. Be extremely flexible and interpret user intent comprehensively.
 
 Available categories: Electronics, Fitness, Kitchen, Books, Clothing
 
-Extract filters based on user intent:
-- If user mentions price terms like "cheap", "budget" → max_price: 50
-- If user mentions "affordable" → max_price: 200  
-- If user mentions "expensive", "premium" → min_price: 500
-- If user mentions quality like "best", "top", "high quality" → min_rating: 4.5
-- If user mentions "good", "decent" → min_rating: 4.0
-- If user mentions availability like "available", "in stock" → in_stock_only: true
+COMPREHENSIVE FILTER EXTRACTION:
+Price interpretation:
+- "cheap", "budget", "недорого", "дешево" → max_price: 50
+- "affordable", "доступно" → max_price: 200  
+- "expensive", "premium", "дорого" → min_price: 500
+- Look for ANY numeric values as price limits
 
-IMPORTANT FALLBACK LOGIC:
-- If no specific criteria mentioned, try to infer from context
-- If user just says general things like "show me products" → return empty filters (show all)
-- If user mentions a category without specifics → just set category
-- If user asks for "something" without details → be flexible and helpful
-- For vague requests, prefer broader searches over empty results
-- Extract product names as search_term when mentioned (laptop, phone, book, etc.)
+Quality/Rating interpretation:
+- "best", "top", "high quality", "лучший", "отличный" → min_rating: 4.5
+- "good", "decent", "хороший" → min_rating: 4.0
+- Always consider rating when quality is mentioned
 
-Always try to be helpful - if unsure, err on the side of showing more results rather than fewer.`
+Product name extraction:
+- Extract ANY product type as search_term: "smartphone", "phone", "laptop", "book", "shirt", etc.
+- Include BOTH English and Russian product names
+- Be flexible with variations: "phone" = "smartphone" = "телефон"
+
+Stock/Availability:
+- "available", "in stock", "есть в наличии" → in_stock: true
+
+CRITICAL INSTRUCTIONS:
+1. ALWAYS extract product names as search_term - this is the most important filter
+2. If user mentions ANY product type, set search_term even if no other criteria
+3. For "cheap smartphone" → search_term: "smartphone" AND max_price: 50
+4. For "дешевый телефон" → search_term: "phone" AND max_price: 50
+5. Be generous with search_term extraction - include partial matches
+6. Prefer showing results over empty searches
+7. When in doubt, extract the product name as search_term
+
+Examples:
+- "cheap smartphone" → {search_term: "smartphone", max_price: 50}
+- "best laptop" → {search_term: "laptop", min_rating: 4.5}
+- "affordable books" → {search_term: "book", max_price: 200}
+- "headphones in stock" → {search_term: "headphones", in_stock: true}`
             },
             {
                 role: 'user',
@@ -382,9 +408,9 @@ const main = async () => {
         process.exit(1);
     }
 
-    // Load products
-    const products = loadProducts();
-    console.log(`✅ Loaded ${products.length} products from database.\n`);
+    // Load products into global variable
+    productsData = loadProducts();
+    console.log(`✅ Loaded ${productsData.length} products from database.\n`);
 
     const rl = setupReadline();
 
