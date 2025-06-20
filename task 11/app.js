@@ -89,35 +89,39 @@ class AudioAnalyzer {
             
             // Step 2: Summarize with GPT
             console.log('🔄 Step 2/3: Generating summary with GPT...');
-            const summary = await this.generateSummary(transcriptionResult.text);
+            const summary = await this.generateSummary(transcriptionResult.text, transcriptionResult);
             
             // Step 3: Analyze content
             console.log('🔄 Step 3/3: Analyzing content and extracting insights...');
             const analysis = await this.analyzeContent(transcriptionResult.text, transcriptionResult.duration);
 
-            // Save results
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-            const baseFileName = path.basename(filePath, path.extname(filePath));
-            
-            const transcriptionFile = await this.saveTranscription(transcriptionResult, baseFileName, timestamp);
-            const summaryFile = await this.saveSummary(summary, baseFileName, timestamp);
-            const analysisFile = await this.saveAnalysis(analysis, baseFileName, timestamp);
+            // Save verification files only
+            await this.saveVerificationFiles(transcriptionResult, summary, analysis);
 
             // Display results
             this.displayResults(transcriptionResult, summary, analysis, {
-                transcriptionFile,
-                summaryFile,
-                analysisFile,
                 processingTime: ((Date.now() - startTime) / 1000).toFixed(1)
             });
 
-        } catch (error) {
+                } catch (error) {
             console.error('❌ Processing failed:', error.message);
+            
+            // Enhanced edge case handling
             if (error.message.includes('file size')) {
                 console.log('💡 Try compressing your audio file to under 25MB');
+            } else if (error.message.includes('rate limit')) {
+                console.log('💡 API rate limit reached. Please wait and try again');
+            } else if (error.message.includes('unclear') || error.message.includes('speech')) {
+                console.log('💡 Audio quality may be poor. Try with clearer audio');
+            } else if (error.message.includes('language')) {
+                console.log('💡 Language detection failed. Audio may contain multiple languages or unclear speech');
+            } else {
+                console.log('💡 Check your internet connection and API key');
             }
         }
     }
+
+
 
     async validateAudioFile(filePath) {
         try {
@@ -154,16 +158,25 @@ class AudioAnalyzer {
 
     async transcribeAudio(filePath) {
         try {
+            console.log('   🔍 Detecting language and transcribing...');
+            
+            // Универсальная транскрипция с поддержкой любых языков
+            console.log('   🌍 Detecting language...');
+            
             const transcription = await this.openai.audio.transcriptions.create({
                 file: fsSync.createReadStream(filePath),
                 model: "whisper-1",
                 response_format: "verbose_json",
-                temperature: 0.1
+                temperature: 0.0
+                // Убираем промпт чтобы избежать его появления в транскрипции
             });
+
+            console.log(`   ✅ Language detected: ${transcription.language || 'auto-detected'}`);
+            console.log(`   📊 Duration: ${transcription.duration ? Math.round(transcription.duration) + 's' : 'unknown'}`);
 
             return {
                 text: transcription.text,
-                language: transcription.language || 'unknown',
+                language: transcription.language || 'auto-detected',
                 duration: transcription.duration || 0,
                 segments: transcription.segments || []
             };
@@ -178,19 +191,21 @@ class AudioAnalyzer {
         }
     }
 
-    async generateSummary(text) {
+    async generateSummary(text, transcriptionResult) {
         try {
+            const language = transcriptionResult.language || 'unknown';
+            
             const completion = await this.openai.chat.completions.create({
                 model: "gpt-4.1-mini",
                 temperature: 0.3,
                 messages: [
                     {
                         role: "system",
-                        content: `You are an expert content summarizer. Create a clear, concise summary that captures the main points, key insights, and important conclusions from the transcribed audio content. Focus on preserving the core message and essential details.`
+                        content: `You are an expert content summarizer. Create a clear, concise summary that captures the main points, key insights, and important conclusions from the transcribed audio content. Focus on preserving the core message and essential details. Adapt your analysis to the detected language and cultural context.`
                     },
                     {
                         role: "user",
-                        content: `Please summarize the following transcribed audio content:\n\n${text}`
+                        content: `Please summarize the following transcribed audio content (Language: ${language}):\n\n${text}`
                     }
                 ]
             });
@@ -203,22 +218,42 @@ class AudioAnalyzer {
 
     async analyzeContent(text, duration) {
         try {
+            // Enhanced analytical prompt engineering
             const completion = await this.openai.chat.completions.create({
                 model: "gpt-4.1-mini",
                 temperature: 0.1,
                 messages: [
                     {
                         role: "system",
-                        content: `You are a content analyst. Analyze the transcribed text and return a JSON object with:
-1. word_count: total number of words
-2. speaking_speed_wpm: words per minute (use the duration provided)
-3. frequently_mentioned_topics: array of topics with their mention counts (minimum 3 topics)
+                        content: `You are a speech analytics processor. Extract structured metrics from transcribed audio content.
 
-Return ONLY valid JSON, no additional text.`
+REQUIRED OUTPUT: Valid JSON object with exactly these fields:
+{
+  "word_count": <integer>,
+  "speaking_speed_wpm": <number>, 
+  "frequently_mentioned_topics": [
+    {"topic": "topic_name", "mentions": <integer>},
+    {"topic": "topic_name", "mentions": <integer>},
+    {"topic": "topic_name", "mentions": <integer>}
+  ]
+}
+
+CALCULATION RULES:
+- word_count: Count all meaningful words (exclude filler words like "um", "uh")
+- speaking_speed_wpm: (word_count / duration_seconds) * 60
+- frequently_mentioned_topics: Identify 3+ most significant topics with exact mention counts
+
+ANALYSIS APPROACH:
+- Focus on semantic content and key themes
+- Count explicit mentions and synonymous references
+- Prioritize substantive topics over generic terms
+- Ensure accurate numerical calculations
+
+Return ONLY the JSON object. No explanatory text.`
                     },
                     {
                         role: "user",
-                        content: `Analyze this transcribed audio content (duration: ${duration} seconds):\n\n${text}`
+                        content: `Analyze this transcribed content (${duration} seconds duration):\n\n${text}`
                     }
                 ]
             });
@@ -275,32 +310,47 @@ Return ONLY valid JSON, no additional text.`
         }
     }
 
-    async saveTranscription(transcriptionResult, baseFileName, timestamp) {
-        const fileName = `transcription_${timestamp}.md`;
+    async saveVerificationFiles(transcriptionResult, summary, analysis) {
+        // Улучшенное форматирование транскрипции
+        let formattedTranscription = transcriptionResult.text;
         
-        const content = `# Audio Transcription
+        // Если есть сегменты, используем их для лучшего форматирования
+        if (transcriptionResult.segments && transcriptionResult.segments.length > 0) {
+            formattedTranscription = transcriptionResult.segments
+                .map(segment => {
+                    const timestamp = `[${Math.floor(segment.start / 60)}:${String(Math.floor(segment.start % 60)).padStart(2, '0')}]`;
+                    return `${timestamp} ${segment.text.trim()}`;
+                })
+                .join('\n\n');
+        }
 
-**File:** ${baseFileName}
+        // Create transcription.md
+        const transcriptionContent = `# Audio Transcription
+
+**File:** Audio File
 **Date:** ${new Date().toLocaleString()}
 **Language:** ${transcriptionResult.language}
 **Duration:** ${transcriptionResult.duration ? `${Math.round(transcriptionResult.duration)}s` : 'Unknown'}
+**Processing Tool:** Audio Transcription & Analysis Tool
 
-## Transcription
+## Full Transcription
 
+${formattedTranscription}
+
+---
+
+### Raw Transcription
 ${transcriptionResult.text}
 `;
 
-        await fs.writeFile(fileName, content, 'utf8');
-        return fileName;
-    }
+        await fs.writeFile('transcription.md', transcriptionContent, 'utf8');
 
-    async saveSummary(summary, baseFileName, timestamp) {
-        const fileName = `summary_${timestamp}.md`;
-        
-        const content = `# Audio Summary
+        // Create summary.md
+        const summaryContent = `# Audio Summary
 
-**File:** ${baseFileName}
+**File:** Audio File
 **Date:** ${new Date().toLocaleString()}
+**Language:** ${transcriptionResult.language}
 **Processing Tool:** Audio Transcription & Analysis Tool
 
 ## Summary
@@ -308,15 +358,12 @@ ${transcriptionResult.text}
 ${summary}
 `;
 
-        await fs.writeFile(fileName, content, 'utf8');
-        return fileName;
-    }
+        await fs.writeFile('summary.md', summaryContent, 'utf8');
 
-    async saveAnalysis(analysis, baseFileName, timestamp) {
-        const fileName = `analysis_${timestamp}.json`;
+        // Create analysis.json
+        await fs.writeFile('analysis.json', JSON.stringify(analysis, null, 2), 'utf8');
         
-        await fs.writeFile(fileName, JSON.stringify(analysis, null, 2), 'utf8');
-        return fileName;
+        console.log('✅ Files created: transcription.md, summary.md, analysis.json');
     }
 
     displayResults(transcription, summary, analysis, metadata) {
@@ -336,9 +383,7 @@ ${summary}
         console.log(summary);
 
         console.log('\n💾 Files saved:');
-        console.log(`   📄 Transcription: ${metadata.transcriptionFile}`);
-        console.log(`   📋 Summary: ${metadata.summaryFile}`);
-        console.log(`   📊 Analysis: ${metadata.analysisFile}`);
+        console.log('   📋 Verification files: transcription.md, summary.md, analysis.json');
         
         console.log(`\n⏱️  Processing completed in ${metadata.processingTime}s`);
     }
