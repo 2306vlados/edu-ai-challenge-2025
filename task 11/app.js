@@ -100,10 +100,14 @@ class AudioAnalyzer {
             const baseFileName = path.basename(filePath, path.extname(filePath));
             
             const transcriptionFile = await this.saveTranscription(transcriptionResult, baseFileName, timestamp);
+            const summaryFile = await this.saveSummary(summary, baseFileName, timestamp);
+            const analysisFile = await this.saveAnalysis(analysis, baseFileName, timestamp);
 
             // Display results
             this.displayResults(transcriptionResult, summary, analysis, {
                 transcriptionFile,
+                summaryFile,
+                analysisFile,
                 processingTime: ((Date.now() - startTime) / 1000).toFixed(1)
             });
 
@@ -290,6 +294,31 @@ ${transcriptionResult.text}
         return fileName;
     }
 
+    async saveSummary(summary, baseFileName, timestamp) {
+        const fileName = `summary_${timestamp}.md`;
+        
+        const content = `# Audio Summary
+
+**File:** ${baseFileName}
+**Date:** ${new Date().toLocaleString()}
+**Processing Tool:** Audio Transcription & Analysis Tool
+
+## Summary
+
+${summary}
+`;
+
+        await fs.writeFile(fileName, content, 'utf8');
+        return fileName;
+    }
+
+    async saveAnalysis(analysis, baseFileName, timestamp) {
+        const fileName = `analysis_${timestamp}.json`;
+        
+        await fs.writeFile(fileName, JSON.stringify(analysis, null, 2), 'utf8');
+        return fileName;
+    }
+
     displayResults(transcription, summary, analysis, metadata) {
         console.log('\n' + '='.repeat(60));
         console.log('📊 ANALYSIS RESULTS');
@@ -308,6 +337,8 @@ ${transcriptionResult.text}
 
         console.log('\n💾 Files saved:');
         console.log(`   📄 Transcription: ${metadata.transcriptionFile}`);
+        console.log(`   📋 Summary: ${metadata.summaryFile}`);
+        console.log(`   📊 Analysis: ${metadata.analysisFile}`);
         
         console.log(`\n⏱️  Processing completed in ${metadata.processingTime}s`);
     }
